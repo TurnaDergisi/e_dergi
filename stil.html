@@ -1,0 +1,326 @@
+/* Genel sayfa stilleri */
+:root {
+  --glass-bg: rgba(30, 30, 35, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --accent-color: rgba(255, 255, 255, 0.85);
+  --bg-gradient-start: #0f172a;
+  --bg-gradient-end: #1e293b;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  /* Premium Dark Gradient */
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+  background-attachment: fixed;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Subtle background animated glow */
+body::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 50%);
+  animation: glowMove 20s infinite linear;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes glowMove {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Yükleme göstergesi */
+#loading {
+  position: absolute;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-color);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+/* Premium Yükleme spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: #38bdf8;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Flipbook ana konteyneri */
+#flipbook-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  box-sizing: border-box;
+  z-index: 10;
+  position: relative;
+}
+
+/* Flipbook wrapper */
+#flipbook-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  /* Premium drop-shadow under the entire book */
+  filter: drop-shadow(0 25px 50px rgba(0,0,0,0.5));
+}
+
+/* Flipbook konteyneri */
+#flipbook {
+  width: 1400px;
+  height: 900px;
+  margin: 0 auto;
+  box-shadow: none;
+  background: transparent;
+  position: relative;
+  overflow: visible;
+  touch-action: pan-y pinch-zoom;
+  -webkit-user-drag: none;
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+/* Sayfa stilleri */
+.page {
+  background-color: white; /* Pages are naturally white */
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.02);
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Left page slight shadow */
+.even {
+  box-shadow: inset -5px 0 10px rgba(0,0,0,0.05);
+}
+
+/* Right page slight shadow */
+.odd {
+  box-shadow: inset 5px 0 10px rgba(0,0,0,0.05);
+}
+
+.page canvas {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Turn.js sayfa gölgeleri */
+.turn-page {
+  background: transparent;
+}
+.turn-page-wrapper {
+  perspective: 2000px;
+}
+
+/* Glassmorphic Controls Dock (Premium Bottom Bar) */
+#controls-dock {
+  display: none !important; /* Managed by JS */
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 50px;
+  padding: 8px 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  align-items: center;
+  gap: 20px;
+  transition: bottom 0.3s ease, opacity 0.3s ease;
+}
+
+.dock-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Premium Buttons inside Dock */
+.btn-glass {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--accent-color);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-glass:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.25);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.btn-glass:active {
+  transform: translateY(0);
+}
+
+.btn-glass-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#music-controls {
+  position: static;
+  transform: none;
+  background: none;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+/* Volume Slider */
+.volume-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-color);
+  font-size: 13px;
+}
+input[type=range] {
+  -webkit-appearance: none;
+  width: 80px;
+  background: transparent;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #38bdf8;
+  cursor: pointer;
+  margin-top: -4px;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+}
+
+/* Responsive tasarım */
+
+/* Orta-büyük ekranlar */
+@media (max-width: 1500px) {
+  #flipbook { width: 1200px; height: 750px; }
+  .page { width: 600px; height: 750px; }
+}
+
+@media (max-width: 1250px) {
+  #flipbook { width: 1000px; height: 650px; }
+  .page { width: 500px; height: 650px; }
+}
+
+@media (max-width: 1050px) {
+  #flipbook { width: 900px; height: 600px; }
+  .page { width: 450px; height: 600px; }
+}
+
+/* Tabletler */
+@media (max-width: 950px) {
+  #flipbook { width: 700px; height: 500px; }
+  .page { width: 350px; height: 500px; }
+  #controls-dock { bottom: 20px; padding: 6px 16px; gap: 15px;}
+}
+
+/* Mobile Landscape & Small Tablets */
+@media (max-width: 750px) {
+  #flipbook { width: 600px; height: 450px; }
+  .page { width: 300px; height: 450px; }
+  .btn-glass span { display: none; } /* Hide text, keep icons */
+}
+
+/* Mobile Portrait Mode - SINGLE PAGE (Crucial UX change) */
+/* The layout automatically moves to 1 page via Turn.js JS side */
+@media (max-width: 500px) {
+  #flipbook-container {
+    align-items: flex-start; /* Move up slightly on mobile */
+    padding-top: 5vh;
+  }
+  
+  #flipbook {
+    width: 90vw;
+    height: 70vh;
+  }
+  .page {
+    width: 90vw;
+    height: 70vh;
+  }
+
+  /* Compact controls for mobile dock */
+  #controls-dock {
+    bottom: 20px;
+    width: 90%;
+    max-width: 320px;
+    padding: 10px 15px;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  
+  .btn-glass {
+    padding: 8px;
+    font-size: 0; /* hide all text */
+  }
+
+  .volume-wrapper {
+    display: none; /* Hide volume on mobile to save space, physical buttons handle it */
+  }
+}
+
+@media (max-width: 360px) {
+  #flipbook { height: 65vh; }
+  .page { height: 65vh; }
+}

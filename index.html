@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>PDF Flipbook</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- jQuery UI (Turn.js için gerekli) -->
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+
+  <!-- Turn.js (GitHub raw link) -->
+  <script src="https://raw.githack.com/blasten/turn.js/master/turn.min.js"></script>
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- Stil dosyası -->
+  <style>
+    <?!= include('stil'); ?>
+  </style>
+</head>
+<body>
+  <!-- Yükleme göstergesi -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="loading-text">PDF Yükleniyor...</div>
+  </div>
+
+  <!-- Flipbook konteyneri -->
+  <div id="flipbook-container" style="display: none;">
+    <div id="flipbook-wrapper">
+      <div id="flipbook"></div>
+    </div>
+  </div>
+
+  <!-- Glassmorphic Controls Dock -->
+  <div id="controls-dock" style="display: none !important;">
+    <div class="dock-controls">
+      <!-- Müzik Kontrolleri -->
+      <div id="music-controls" class="d-flex align-items-center gap-2">
+        <button id="play-music-btn" class="btn-glass" title="Müziği Çal">
+          <span class="btn-glass-icon">🎵</span> <span>Çal</span>
+        </button>
+        <button id="pause-music-btn" class="btn-glass" style="display: none;" title="Müziği Duraklat">
+          <span class="btn-glass-icon">⏸️</span> <span>Duraklat</span>
+        </button>
+        
+        <div class="volume-wrapper">
+          <span>🔊</span>
+          <input type="range" id="volume-slider" min="0" max="100" value="50">
+        </div>
+      </div>
+      
+      <!-- Sayfa Kontrolleri (Opsiyonel manuel yönlendirme için) -->
+      <div class="d-flex align-items-center gap-2" style="border-left: 1px solid rgba(255,255,255,0.2); padding-left: 12px; margin-left: 5px;">
+        <button id="prev-btn" class="btn-glass" title="Önceki Sayfa">
+          <span class="btn-glass-icon">◀</span>
+        </button>
+        <button id="next-btn" class="btn-glass" title="Sonraki Sayfa">
+          <span class="btn-glass-icon">▶</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Müzik elementi (gizli) -->
+  <audio id="background-music" loop>
+    <source src="" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // Sayfa yüklendiğinde PDF'i al
+    $(document).ready(function() {
+      console.log('Sayfa yüklendi...');
+      console.log('PDF sunucudan alınıyor...');
+      
+      // Sunucudan PDF verilerini al
+      google.script.run
+        .withSuccessHandler(function(base64) {
+          onPdfLoaded(base64, {fromCache: false});
+        })
+        .withFailureHandler(onError)
+        .getPdfAsBase64();
+    });
+
+    /**
+     * PDF başarıyla yüklendiğinde çalışır
+     */
+    function onPdfLoaded(base64Data, opts) {
+      opts = opts || {};
+      console.log('PDF verisi alındı, işleniyor...');
+
+      // PDF.js worker dosyasının yolunu ayarla
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  // Base64 verisini PDF formatına dönüştür
+      var pdfData = atob(base64Data);
+      var uint8Array = new Uint8Array(pdfData.length);
+      for (var i = 0; i < pdfData.length; i++) {
+        uint8Array[i] = pdfData.charCodeAt(i);
+      }
+
+      // PDF'i yükle
+      var loadingTask = pdfjsLib.getDocument({data: uint8Array});
+
+      loadingTask.promise.then(function(pdf) {
+        console.log('PDF yüklendi, toplam sayfa:', pdf.numPages);
+        var totalPages = pdf.numPages;
+        var renderedPages = [];
+
+        // Tüm sayfaları sırayla render et
+        var renderPromise = Promise.resolve();
+
+        for (var pageNum = 1; pageNum <= totalPages; pageNum++) {
+          (function(num) {
+            renderPromise = renderPromise.then(function() {
+              return renderPage(pdf, num).then(function(pageData) {
+                renderedPages.push(pageData);
+                console.log('Sayfa render edildi:', num, '/', totalPages);
+              });
+            });
+          })(pageNum);
+        }
+
+        renderPromise.then(function() {
+          console.log('Tüm sayfalar render edildi:', renderedPages.length);
+
+          // Sayfa numarasına göre sırala
+          renderedPages.sort(function(a, b) {
+            return a.pageNum - b.pageNum;
+          });
+
+          // Sayfaları sırayla flipbook'a ekle
+          renderedPages.forEach(function(pageData, index) {
+            var pageDiv = $('<div></div>').addClass('page');
+
+            // Div'in boyutunu hesaplanan sayfa boyutuna ayarla
+            pageDiv.css({
+              'width': pageData.pageWidth + 'px',
+              'height': pageData.pageHeight + 'px',
+              'display': 'flex',
+              'justify-content': index % 2 === 0 ? 'flex-start' : 'flex-end', // Sol sayfalar sola, sağ sayfalar sağa
+              'align-items': 'center',
+              'overflow': 'visible'
+            });
+
+            // Canvas'ın yüksekliği %100 olsun, genişliği otomatik
+            $(pageData.canvas).css({
+              'height': '100%',
+              'width': 'auto',
+              'object-fit': 'contain',
+              'display': 'block'
+            });
+
+            pageDiv.append(pageData.canvas);
+            $('#flipbook').append(pageDiv);
+            console.log('Sayfa eklendi:', index + 1);
+          });
+
+          console.log('Flipbook\'ta toplam div sayısı:', $('#flipbook > div').length);
+
+          // Yükleme göstergesini gizle
+          $('#loading').fadeOut();
+
+          // Flipbook konteyneri göster
+          $('#flipbook-container').fadeIn();
+
+          // Turn.js'nin yüklenip yüklenmediğini kontrol et
+          if (typeof $.fn.turn !== 'function') {
+            console.error('Turn.js yüklenemedi! Kütüphane bulunamadı.');
+            $('#loading').html('<p style="color: red;">Turn.js kütüphanesi yüklenemedi. Lütfen internet bağlantınızı kontrol edin.</p>').show();
+            $('#flipbook-container').hide();
+            return;
+          }
+
+          // Turn.js'yi başlat
+          try {
+            console.log('Turn.js başlatılıyor...');
+            console.log('Turn.js versiyonu:', $.fn.turn ? 'Yüklendi' : 'Yüklenmedi');
+
+            // Ekran boyutuna göre flipbook boyutunu ve görünümünü ayarla
+            var screenWidth = $(window).width();
+            var flipbookWidth = 1400;
+            var flipbookHeight = 900;
+            var displayMode = 'double';
+
+            // Responsive boyutlar
+            if (screenWidth <= 360) {
+              flipbookWidth = screenWidth;
+              flipbookHeight = Math.min(screenWidth * 1.3, window.innerHeight * 0.65);
+              displayMode = 'single';
+            } else if (screenWidth <= 500) {
+              flipbookWidth = screenWidth;
+              flipbookHeight = Math.min(screenWidth * 1.2, window.innerHeight * 0.7);
+              displayMode = 'single';
+            } else if (screenWidth <= 650) {
+              flipbookWidth = Math.min(500, screenWidth - 80);
+              flipbookHeight = 400;
+              displayMode = 'double';
+            } else if (screenWidth <= 750) {
+              flipbookWidth = 600;
+              flipbookHeight = 450;
+            } else if (screenWidth <= 950) {
+              flipbookWidth = 700;
+              flipbookHeight = 500;
+            } else if (screenWidth <= 1050) {
+              flipbookWidth = 900;
+              flipbookHeight = 600;
+            } else if (screenWidth <= 1250) {
+              flipbookWidth = 1000;
+              flipbookHeight = 650;
+            } else if (screenWidth <= 1500) {
+              flipbookWidth = 1200;
+              flipbookHeight = 750;
+            }
+
+            $('#flipbook').turn({
+              width: flipbookWidth,
+              height: flipbookHeight,
+              autoCenter: true,
+              elevation: 50,
+              gradients: true,
+              acceleration: true,
+              display: displayMode,
+              duration: 1000,
+              when: {
+                turning: function(event, page, view) {
+                  console.log('Sayfa çevriliyor:', page);
+                },
+                turned: function(event, page, view) {
+                  console.log('Sayfa çevrildi:', page);
+                },
+                start: function(event, pageObject, corner) {
+                  console.log('Çevirme başladı');
+                }
+              }
+            });
+
+            console.log('Turn.js başlatıldı!');
+            console.log('Mevcut sayfa sayısı:', $('#flipbook').turn('pages'));
+
+            // Show dock
+            $('#controls-dock').fadeIn();
+
+            // Kontrol butonlarını bağla
+            $('#prev-btn').click(function() {
+              $('#flipbook').turn('previous');
+            });
+
+            $('#next-btn').click(function() {
+              $('#flipbook').turn('next');
+            });
+
+            // Klavye kontrolü
+            $(document).keydown(function(e) {
+              if (e.keyCode == 37) { // Sol ok
+                $('#flipbook').turn('previous');
+              } else if (e.keyCode == 39) { // Sağ ok
+                $('#flipbook').turn('next');
+              }
+            });
+
+            // Fare tıklamasıyla ileri/geri gitme (Sadece masaüstü fare için, swipe engellemeden)
+            $('#flipbook').on('mousedown', function(e) {
+              // Mouse down is handled, real click will be handled differently to not interfere with drag/swipe
+            });
+
+            $('#flipbook').on('mouseup', function(e) {
+              // Only trigger turn on click if it wasn't a drag (Turn.js handles drag internally)
+              var isDrag = $(this).data('isDragging');
+              if (isDrag) {
+                 $(this).data('isDragging', false);
+                 return;
+              }
+              
+              var flipbookWidth = $(this).width();
+              var clickX = e.pageX - $(this).offset().left;
+
+              // Sol yarıya tıklandıysa geri git
+              if (clickX < flipbookWidth / 2) {
+                $('#flipbook').turn('previous');
+              }
+              // Sağ yarıya tıklandıysa ileri git
+              else {
+                $('#flipbook').turn('next');
+              }
+            });
+
+            $('#flipbook').on('mousemove', function(e) {
+               $(this).data('isDragging', true);
+            });
+
+            // Hover efekti için cursor değiştir
+            $('#flipbook').css('cursor', 'pointer');
+
+            // Touch eventleri: Standard Turn.js swipe çalışacak. Sadece double tap zoom için küçük eklemeler yapılabilir.
+            $('#flipbook').on('touchstart', function(e) {
+               // Let Turn.js handle touch natively
+               $(this).data('isDragging', false);
+            });
+
+            // Müzik kontrollerini başlat
+            initMusicControls();
+
+            // Window resize ve orientation change eventi - Otomatik yeniden boyutlandırma
+            function handleResize() {
+              clearTimeout(window.resizeTimer);
+              window.resizeTimer = setTimeout(function() {
+                resizeFlipbook();
+                // Eğer turn.js başlatılmışsa, mevcut sayfayı yeniden göster (refresh)
+                if ($('#flipbook').turn('is')) {
+                  var currentPage = $('#flipbook').turn('page');
+                  $('#flipbook').turn('display', $('#flipbook').turn('display'));
+                  $('#flipbook').turn('page', currentPage);
+                }
+              }, 250);
+            }
+            
+            $(window).on('resize orientationchange', handleResize);
+
+          } catch(e) {
+            console.error('Turn.js başlatma hatası:', e);
+          }
+        });
+      }).catch(function(error) {
+        onError(error);
+      });
+    }
+
+    /**
+     * Flipbook'u pencere boyutuna göre yeniden boyutlandır
+     */
+    function resizeFlipbook() {
+      var screenWidth = $(window).width();
+      var screenHeight = $(window).height();
+      var containerWidth = $('#flipbook-container').width();
+      var containerHeight = $('#flipbook-container').height();
+      var displayMode = 'double';
+
+      // Ekran genişliğine göre görünüm modunu belirle
+      if (screenWidth <= 500) {
+        displayMode = 'single';
+      }
+
+      // Sayfanın aspect ratio'sunu koru ve ekrana sığdır
+      var flipbookWidth, flipbookHeight;
+      
+      if (displayMode === 'single') {
+        // Tek sayfa modunda
+        flipbookWidth = Math.min(screenWidth * 0.9, containerWidth * 0.9);
+        flipbookHeight = Math.min(flipbookWidth * 1.4, screenHeight * 0.8);
+      } else {
+        // Çift sayfa modunda
+        flipbookWidth = Math.min(screenWidth * 0.85, containerWidth * 0.85);
+        flipbookHeight = Math.min(flipbookWidth * 0.7, screenHeight * 0.8);
+      }
+      
+      // Yükseklik sınırlaması aşılıyorsa, yüksekliğe göre genişliği ayarla
+      if (flipbookHeight > screenHeight * 0.8) {
+        flipbookHeight = screenHeight * 0.8;
+        if (displayMode === 'single') {
+          flipbookWidth = flipbookHeight / 1.4;
+        } else {
+          flipbookWidth = flipbookHeight / 0.7;
+        }
+      }
+
+      console.log('Resize: ' + screenWidth + 'px → Flipbook: ' + flipbookWidth + 'x' + flipbookHeight);
+
+      // Turn.js boyutunu güncelle
+      $('#flipbook').turn('size', flipbookWidth, flipbookHeight);
+
+      // Display mode'u güncelle
+      if ($('#flipbook').turn('display') !== displayMode) {
+        $('#flipbook').turn('display', displayMode);
+      }
+    }
+
+    /**
+     * Bir PDF sayfasını render eder
+     */
+    function renderPage(pdf, pageNum) {
+      return pdf.getPage(pageNum).then(function(page) {
+        // Canvas oluştur
+        var canvas = document.createElement('canvas');
+        var context = canvas.getContext('2d');
+
+        // Ekran boyutuna göre sayfa boyutunu belirle
+        var screenWidth = $(window).width();
+        var pageWidth = 700;
+        var pageHeight = 900;
+
+        // Responsive boyutlar
+        if (screenWidth <= 360) {
+          pageWidth = screenWidth;
+          pageHeight = Math.min(screenWidth * 1.3, window.innerHeight * 0.65);
+        } else if (screenWidth <= 500) {
+          pageWidth = screenWidth;
+          pageHeight = Math.min(screenWidth * 1.2, window.innerHeight * 0.7);
+        } else if (screenWidth <= 650) {
+          pageWidth = Math.min(250, (screenWidth - 80) / 2);
+          pageHeight = 400;
+        } else if (screenWidth <= 750) {
+          pageWidth = 300;
+          pageHeight = 450;
+        } else if (screenWidth <= 950) {
+          pageWidth = 350;
+          pageHeight = 500;
+        } else if (screenWidth <= 1050) {
+          pageWidth = 450;
+          pageHeight = 600;
+        } else if (screenWidth <= 1250) {
+          pageWidth = 500;
+          pageHeight = 650;
+        } else if (screenWidth <= 1500) {
+          pageWidth = 600;
+          pageHeight = 750;
+        }
+
+        // Sayfa boyutlarını ayarla
+        var viewport = page.getViewport({scale: 1.0});
+
+        // PDF'i tam olarak sayfa boyutuna sığdır (aspect ratio korunarak)
+        var scaleX = pageWidth / viewport.width;
+        var scaleY = pageHeight / viewport.height;
+        var scale = Math.min(scaleX, scaleY); // Küçüğünü kullan (kırpmadan sığdır)
+
+        viewport = page.getViewport({scale: scale});
+
+        // Canvas boyutunu viewport'a göre ayarla
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        // Sayfayı render et (transform olmadan)
+        var renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+
+        return page.render(renderContext).promise.then(function() {
+          return {
+            pageNum: pageNum,
+            canvas: canvas,
+            pageWidth: pageWidth,
+            pageHeight: pageHeight
+          };
+        });
+      });
+    }
+
+    /**
+     * Hata oluştuğunda çalışır
+     */
+    function onError(error) {
+      console.error('Hata oluştu:', error);
+      $('#loading').html('<p style="color: red;">Hata: ' + error.message + '</p>');
+    }
+
+    /**
+     * Müzik kontrollerini başlatır
+     */
+    function initMusicControls() {
+      var audio = document.getElementById('background-music');
+      var playBtn = $('#play-music-btn');
+      var pauseBtn = $('#pause-music-btn');
+      var volumeSlider = $('#volume-slider');
+      var volumeLabel = $('#volume-label');
+
+      // Müzik dosyasını base64 olarak sunucudan al
+      google.script.run
+        .withSuccessHandler(function(musicData) {
+          if (musicData && musicData !== '') {
+            audio.src = musicData;
+            console.log('Müzik yüklendi (base64)');
+            $('#music-controls').show(); // Müzik yüklendiyse kontrolü göster
+          } else {
+            console.log('Müzik dosyası ayarlanmamış.');
+            playBtn.prop('disabled', true);
+            playBtn.text('🎵 Müzik Yok');
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error('Müzik alınamadı:', error);
+        })
+        .getMusicAsBase64();
+
+      // Müzik çal butonu
+      playBtn.click(function() {
+        if (audio.src && audio.src !== '' && audio.src !== window.location.href) {
+          audio.play().then(function() {
+            playBtn.hide();
+            pauseBtn.show();
+            console.log('Müzik çalıyor...');
+          }).catch(function(error) {
+            console.error('Müzik çalınamadı:', error);
+            alert('Müzik çalınamadı. Lütfen dosyanın paylaşım izinlerini kontrol edin.');
+          });
+        } else {
+          alert('Lütfen önce Kod.gs dosyasında müzik dosyası ID\'sini ayarlayın ve dosyayı herkese açık olarak paylaşın!');
+        }
+      });
+
+      // Müzik duraklat butonu
+      pauseBtn.click(function() {
+        audio.pause();
+        pauseBtn.hide();
+        playBtn.show();
+        console.log('Müzik duraklatıldı.');
+      });
+
+      // Ses seviyesi kontrolü
+      volumeSlider.on('input', function() {
+        var volume = $(this).val();
+        audio.volume = volume / 100;
+        volumeLabel.text(volume + '%');
+      });
+
+      // Başlangıç ses seviyesi
+      audio.volume = 0.5;
+
+      // Müzik bitince yeniden başlat (loop zaten var ama yine de)
+      audio.addEventListener('ended', function() {
+        audio.currentTime = 0;
+        audio.play();
+      });
+    }
+  </script>
+</body>
+</html>
