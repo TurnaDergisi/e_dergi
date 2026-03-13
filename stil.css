@@ -151,7 +151,7 @@ body::before {
 
 /* Glassmorphic Controls Dock (Premium Bottom Bar) */
 #controls-dock {
-  display: none !important; /* Managed by JS */
+  display: none; /* Managed by JS */
   position: absolute;
   bottom: 30px;
   left: 50%;
