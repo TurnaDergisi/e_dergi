@@ -23,6 +23,9 @@
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
+  <!-- Panzoom for smooth zooming -->
+  <script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
+
   <!-- Stil dosyası -->
   <link rel="stylesheet" href="stil.css">
 </head>
@@ -57,6 +60,19 @@
           <span>🔊</span>
           <input type="range" id="volume-slider" min="0" max="100" value="50">
         </div>
+      </div>
+
+      <!-- Zoom Kontrolleri -->
+      <div id="zoom-controls">
+        <button id="zoom-out-btn" class="btn-glass" title="Uzaklaştır">
+           <span class="btn-icon">➖</span>
+        </button>
+        <button id="zoom-reset-btn" class="btn-glass" title="Orijinal Boyut">
+           <span class="btn-icon">🏠</span>
+        </button>
+        <button id="zoom-in-btn" class="btn-glass" title="Yakınlaştır">
+           <span class="btn-icon">➕</span>
+        </button>
       </div>
 
       <!-- Sayfa Kontrolleri -->
@@ -249,11 +265,13 @@
             });
             $('#flipbook').css('cursor', 'pointer');
 
-            // Touch: Turn.js native swipe'a izin ver
-            // (Eski projede engellenmişti, şimdi serbest)
-
+            // Mobile touch: Turn.js native swipe'a izin veriyoruz
+            
             // Müzik kontrollerini başlat
             initMusicControls();
+
+            // Panzoom (Yakınlaştırma / Kaydırma) Entegrasyonu
+            initPanzoom(totalPages);
 
             // Window resize
             $(window).on('resize orientationchange', function() {
@@ -390,6 +408,63 @@
 
       volumeSlider.on('input', function() {
         audio.volume = $(this).val() / 100;
+      });
+    }
+
+    // ============================================
+    //  PANZOOM & PINCH TO ZOOM KONTROLLERİ
+    // ============================================
+    function initPanzoom(totalPages) {
+      const elem = document.getElementById('flipbook-wrapper');
+      
+      // Panzoom nesnesini başlat
+      const panzoom = Panzoom(elem, {
+        maxScale: 3,
+        minScale: 1,
+        contain: 'outside', // Yakınlaştırıldığında dışarı çıkmasın
+        step: 0.3, // Zoom hızı
+        cursor: 'default'
+      });
+
+      // Masaüstü fare tekerleği ile zoom
+      elem.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
+
+      // Butonları panzoom'a bağla
+      document.getElementById('zoom-in-btn').addEventListener('click', panzoom.zoomIn);
+      document.getElementById('zoom-out-btn').addEventListener('click', panzoom.zoomOut);
+      document.getElementById('zoom-reset-btn').addEventListener('click', () => {
+        panzoom.reset();
+        // Sıfırlandığında dergiyi tekrar ortala
+        setTimeout(() => resizeFlipbook(totalPages), 50);
+      });
+
+      // Mobilde çift dokunma (double tap) ile %150 zoom veya sıfırlama
+      let lastTap = 0;
+      $('#flipbook-container').on('touchend', function(e) {
+        var currentTime = new Date().getTime();
+        var tapLength = currentTime - lastTap;
+        if (tapLength < 300 && tapLength > 0) {
+          // Double tap tespit edildi
+          if (panzoom.getScale() > 1.1) {
+            panzoom.reset();
+          } else {
+            panzoom.zoom(1.5, { animate: true });
+          }
+          e.preventDefault();
+        }
+        lastTap = currentTime;
+      });
+
+      // Ekstra ergonomi: Zoom %100'deyken kaydırmayı (pan) durdur, 
+      // sayfayı sürükleyebilmek için sadece zoomluysa pan'e izin ver.
+      elem.addEventListener('panzoomchange', (e) => {
+        if (e.detail.scale <= 1) {
+          // Normal boyuttayken sürükleyerek sayfa çevirmeye izin ver
+          $('#flipbook').css('pointer-events', 'auto');
+        } else {
+          // Büyütülmüş haldeyken sayfa çevirmeyi engelle, okumak için kaydırmaya (pan) odaklan
+          $('#flipbook').css('pointer-events', 'none');
+        }
       });
     }
   </script>

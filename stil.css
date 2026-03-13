@@ -211,13 +211,16 @@ body::before {
   align-items: center;
 }
 
-#music-controls {
+#music-controls, #zoom-controls {
   position: static;
   transform: none;
   background: none;
   border: none;
   padding: 0;
   box-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Volume Slider */
@@ -273,7 +276,8 @@ input[type=range]::-webkit-slider-runnable-track {
 @media (max-width: 950px) {
   #flipbook { width: 700px; height: 500px; }
   .page { width: 350px; height: 500px; }
-  #controls-dock { bottom: 20px; padding: 6px 16px; gap: 15px;}
+  #controls-dock { bottom: 20px; padding: 6px 12px; gap: 10px;}
+  .btn-glass { padding: 8px 12px; }
 }
 
 /* Mobile Landscape & Small Tablets */
@@ -303,16 +307,21 @@ input[type=range]::-webkit-slider-runnable-track {
   /* Compact controls for mobile dock */
   #controls-dock {
     bottom: 20px;
-    width: 90%;
-    max-width: 320px;
-    padding: 10px 15px;
+    width: 95%;
+    max-width: 400px;
+    padding: 10px 10px;
     justify-content: space-between;
-    gap: 10px;
+    gap: 5px;
   }
   
   .btn-glass {
-    padding: 8px;
+    padding: 6px;
     font-size: 0; /* hide all text */
+  }
+  
+  .btn-glass-icon {
+    width: 32px;
+    height: 32px;
   }
 
   .volume-wrapper {
