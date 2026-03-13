@@ -84,10 +84,8 @@
     var PDF_DOSYA_ID = '1KSsIMeXKKH4zMuwFDthvdtC9ia0AgIWg';
     var MUSIC_FILE_ID = '12FeOxyc6Q_yg1vm-Mt7k18Uz3IBe5xDd';
 
-    // Google Drive üzerinden PDF'e doğrudan erişim URL'si
-    // Google Drive üzerinden PDF'e erişim - CORS proxy ile
-    var PDF_DIRECT_URL = 'https://drive.google.com/uc?export=download&id=' + PDF_DOSYA_ID;
-    var CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+    // Yerel (GitHub repodaki) PDF dosyası
+    var PDF_URL = 'dergi.pdf';
 
     // ============================================
     //  SAYFA YÜKLEME
@@ -99,23 +97,10 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-      // CORS proxy üzerinden PDF'i indir
-      var proxyUrl = CORS_PROXY + encodeURIComponent(PDF_DIRECT_URL);
-      
-      fetch(proxyUrl)
-        .then(function(response) {
-          if (!response.ok) throw new Error('PDF indirilemedi: ' + response.status);
-          return response.arrayBuffer();
-        })
-        .then(function(arrayBuffer) {
-          console.log('PDF indirildi, boyut:', arrayBuffer.byteLength, 'bayt');
-          $('#loading-progress').text('PDF işleniyor...');
-          
-          // ArrayBuffer'ı PDF.js'e ver
-          var loadingTask = pdfjsLib.getDocument({data: arrayBuffer});
-          return loadingTask.promise;
-        })
-        .then(function(pdf) {
+      // PDF'i doğrudan URL'den yükle
+      var loadingTask = pdfjsLib.getDocument(PDF_URL);
+
+      loadingTask.promise.then(function(pdf) {
         console.log('PDF yüklendi, toplam sayfa:', pdf.numPages);
         var totalPages = pdf.numPages;
         var renderedPages = [];
