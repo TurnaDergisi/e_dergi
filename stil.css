@@ -254,54 +254,24 @@ input[type=range]::-webkit-slider-runnable-track {
   border-radius: 2px;
 }
 
-/* Responsive tasarım */
-
-/* Orta-büyük ekranlar */
-@media (max-width: 1500px) {
-  #flipbook { width: 1200px; height: 750px; }
-  .page { width: 600px; height: 750px; }
-}
-
-@media (max-width: 1250px) {
-  #flipbook { width: 1000px; height: 650px; }
-  .page { width: 500px; height: 650px; }
-}
-
-@media (max-width: 1050px) {
-  #flipbook { width: 900px; height: 600px; }
-  .page { width: 450px; height: 600px; }
-}
+/* Responsive tasarım (Sadece UI/Dock için. Flipbook boyutları dinamik olarak JS ile hesaplanır) */
 
 /* Tabletler */
 @media (max-width: 950px) {
-  #flipbook { width: 700px; height: 500px; }
-  .page { width: 350px; height: 500px; }
   #controls-dock { bottom: 20px; padding: 6px 12px; gap: 10px;}
   .btn-glass { padding: 8px 12px; }
 }
 
 /* Mobile Landscape & Small Tablets */
 @media (max-width: 750px) {
-  #flipbook { width: 600px; height: 450px; }
-  .page { width: 300px; height: 450px; }
   .btn-glass span { display: none; } /* Hide text, keep icons */
 }
 
-/* Mobile Portrait Mode - SINGLE PAGE (Crucial UX change) */
-/* The layout automatically moves to 1 page via Turn.js JS side */
-@media (max-width: 500px) {
+/* Mobile Portrait Mode */
+@media (max-width: 600px) {
   #flipbook-container {
     align-items: flex-start; /* Move up slightly on mobile */
     padding-top: 5vh;
-  }
-  
-  #flipbook {
-    width: 90vw;
-    height: 70vh;
-  }
-  .page {
-    width: 90vw;
-    height: 70vh;
   }
 
   /* Compact controls for mobile dock */
@@ -330,6 +300,6 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 
 @media (max-width: 360px) {
-  #flipbook { height: 65vh; }
-  .page { height: 65vh; }
+  /* Extra tight spacing for tiny phones */
+  #controls-dock { gap: 2px; }
 }

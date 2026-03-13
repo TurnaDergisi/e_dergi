@@ -160,9 +160,9 @@
             });
 
             $(pageData.canvas).css({
+              'width': '100%',
               'height': '100%',
-              'width': 'auto',
-              'object-fit': 'contain',
+              'object-fit': 'fill', // Orijinal oran bozulmadan tam oturt (Aspect ratio zaten JS'de hesaplandı)
               'display': 'block'
             });
 
@@ -185,32 +185,10 @@
 
           // Turn.js'yi başlat
           try {
-            var screenWidth = $(window).width();
-            var flipbookWidth = 1400;
-            var flipbookHeight = 900;
-            var displayMode = 'double';
-
-            // Responsive boyutlar
-            if (screenWidth <= 500) {
-              flipbookWidth = screenWidth * 0.95;
-              flipbookHeight = Math.min(screenWidth * 1.3, window.innerHeight * 0.75);
-              displayMode = 'single';
-            } else if (screenWidth <= 750) {
-              flipbookWidth = 600;
-              flipbookHeight = 450;
-            } else if (screenWidth <= 950) {
-              flipbookWidth = 700;
-              flipbookHeight = 500;
-            } else if (screenWidth <= 1050) {
-              flipbookWidth = 900;
-              flipbookHeight = 600;
-            } else if (screenWidth <= 1250) {
-              flipbookWidth = 1000;
-              flipbookHeight = 650;
-            } else if (screenWidth <= 1500) {
-              flipbookWidth = 1200;
-              flipbookHeight = 750;
-            }
+            var dims = calculateFlipbookDimensions();
+            var flipbookWidth = dims.width;
+            var flipbookHeight = dims.height;
+            var displayMode = dims.display;
 
             $('#flipbook').turn({
               width: flipbookWidth,
@@ -293,31 +271,53 @@
     });
 
     // ============================================
-    //  FLIPBOOK RESIZE
+    //  DINAMIK BOYUT HESAPLAMA (ASPECT RATIO)
     // ============================================
-    function resizeFlipbook(totalPages) {
+    function calculateFlipbookDimensions() {
       var screenWidth = $(window).width();
-      var screenHeight = $(window).height();
-      var displayMode = screenWidth <= 500 ? 'single' : 'double';
-      var flipbookWidth, flipbookHeight;
+      var screenHeight = $(window).height() - 80; // Alt kontrol paneli için boşluk
 
-      if (displayMode === 'single') {
-        flipbookWidth = screenWidth * 0.95;
-        flipbookHeight = Math.min(flipbookWidth * 1.4, screenHeight * 0.75);
-      } else {
-        flipbookWidth = Math.min(screenWidth * 0.85, 1400);
-        flipbookHeight = Math.min(flipbookWidth * 0.65, screenHeight * 0.8);
+      // Display mode: 600px altında tek sayfa
+      var displayMode = screenWidth < 600 ? 'single' : 'double';
+
+      // Dergi en-boy oranı (Yaklaşık A4 oranı 1:1.41)
+      var pageRatio = 1 / 1.414;
+      var flipbookRatio = displayMode === 'single' ? pageRatio : (pageRatio * 2);
+
+      var maxWidth = screenWidth * 0.95; 
+      var maxHeight = screenHeight * 0.95;
+
+      var width = maxWidth;
+      var height = width / flipbookRatio;
+
+      if (height > maxHeight) {
+        height = maxHeight;
+        width = height * flipbookRatio;
       }
 
-      if (flipbookHeight > screenHeight * 0.8) {
-        flipbookHeight = screenHeight * 0.8;
-        flipbookWidth = displayMode === 'single' ? flipbookHeight / 1.4 : flipbookHeight / 0.65;
+      // Max sınır (Masaüstleri için çok devasa olmaması adına)
+      if (displayMode === 'double' && width > 1400) {
+        width = 1400;
+        height = width / flipbookRatio;
       }
+
+      return {
+        width: Math.floor(width),
+        height: Math.floor(height),
+        display: displayMode
+      };
+    }
+
+    // ============================================
+    //  FLIPBOOK YENİDEN BOYUTLANDIRMA
+    // ============================================
+    function resizeFlipbook() {
+      var dims = calculateFlipbookDimensions();
 
       try {
-        $('#flipbook').turn('size', flipbookWidth, flipbookHeight);
-        if ($('#flipbook').turn('display') !== displayMode) {
-          $('#flipbook').turn('display', displayMode);
+        $('#flipbook').turn('size', dims.width, dims.height);
+        if ($('#flipbook').turn('display') !== dims.display) {
+          $('#flipbook').turn('display', dims.display);
         }
       } catch(e) {}
     }
@@ -330,35 +330,14 @@
         var canvas = document.createElement('canvas');
         var context = canvas.getContext('2d');
 
-        var screenWidth = $(window).width();
-        var pageWidth = 700;
-        var pageHeight = 900;
-
-        if (screenWidth <= 500) {
-          pageWidth = screenWidth * 0.95;
-          pageHeight = Math.min(screenWidth * 1.3, window.innerHeight * 0.75);
-        } else if (screenWidth <= 750) {
-          pageWidth = 300;
-          pageHeight = 450;
-        } else if (screenWidth <= 950) {
-          pageWidth = 350;
-          pageHeight = 500;
-        } else if (screenWidth <= 1050) {
-          pageWidth = 450;
-          pageHeight = 600;
-        } else if (screenWidth <= 1250) {
-          pageWidth = 500;
-          pageHeight = 650;
-        } else if (screenWidth <= 1500) {
-          pageWidth = 600;
-          pageHeight = 750;
-        }
-
-        var viewport = page.getViewport({scale: 1.0});
-        var scaleX = pageWidth / viewport.width;
-        var scaleY = pageHeight / viewport.height;
-        var scale = Math.min(scaleX, scaleY);
-        viewport = page.getViewport({scale: scale});
+        // Ekran DPI'ına ve sayfa büyüklüğüne göre dinamik ve net render
+        var pixelRatio = window.devicePixelRatio || 1;
+        var scale = pixelRatio * 1.5; // Keskin okuma için dengeli bir oran, CSS zaten bunu sığdıracak
+        
+        // Çok büyük renderlardan kaçın (performans için cap atıyoruz)
+        if (scale > 3.0) scale = 3.0; 
+        
+        var viewport = page.getViewport({scale: scale});
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
