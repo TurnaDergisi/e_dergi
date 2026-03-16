@@ -6,9 +6,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Turna Dergisi - E-Dergi</title>
+  <title>E-Dergi</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Dergi yapılandırması (setup.py tarafından üretilir) -->
+  <script src="dergi_config.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
   <script src="https://raw.githack.com/blasten/turn.js/master/turn.min.js"></script>
@@ -141,35 +143,36 @@
 
   <script>
     // ============================================
-    //  YAPILANDIRMA
+    //  YAPILANDIRMA  (dergi_config.js'den okunur)
     // ============================================
-    var TOTAL_PAGES    = 48;
-    var IMG_PATH       = 'eylul/files/mobile/';   // {n}.jpg
-    var THUMB_PATH     = 'eylul/files/thumb/';    // {n}.jpg
-    // Sayfa boyutları (1080x1440 px, oran = 0.75)
-    var PAGE_W         = 1080;
-    var PAGE_H         = 1440;
+    var cfg            = (typeof DERGI_CONFIG !== 'undefined') ? DERGI_CONFIG : {};
+    var TOTAL_PAGES    = cfg.totalPages || 48;
+    var IMG_PATH       = cfg.imgPath    || 'eylul/files/mobile/';
+    var THUMB_PATH     = cfg.thumbPath  || 'eylul/files/thumb/';
+    var PAGE_W         = cfg.pageWidth  || 1080;
+    var PAGE_H         = cfg.pageHeight || 1440;
     var TOOLBAR_TOP    = 44;
     var TOOLBAR_BOTTOM = 48;
     var AUTOPLAY_MS    = 3000;
 
-    // İçindekiler — isteğe göre düzenle
-    var TOC_ITEMS = [
-      { title: 'Kapak',          page: 1  },
-      { title: 'Editörden',      page: 3  },
-      { title: 'Gündem',         page: 5  },
-      { title: 'Haberler',       page: 9  },
-      { title: 'Röportaj',       page: 15 },
-      { title: 'Kültür & Sanat', page: 21 },
-      { title: 'Spor',           page: 27 },
-      { title: 'Teknoloji',      page: 33 },
-      { title: 'Son Sayfa',      page: 48 }
-    ];
+    // Başlık (document.title hemen, DOM elementi ready'de)
+    if (cfg.title) {
+      document.title = cfg.title + ' - E-Dergi';
+    }
+
+    // İçindekiler — dergi_config.js'deki tocItems'dan okunur
+    var TOC_ITEMS = cfg.tocItems || [];
 
     // ============================================
     //  BAŞLANGIÇ
     // ============================================
     $(document).ready(function() {
+      // Başlığı toolbar'a yaz
+      if (cfg.title) { $('.app-title').text(cfg.title); }
+
+      // Sayfa numarası toplamını güncelle
+      $('#page-total').text('/ ' + TOTAL_PAGES);
+
       // Sayfa boyutlarını hesapla (henüz Turn.js başlamadan)
       var initDims = calculateFlipbookDimensions();
       var pageW    = Math.floor(initDims.width  / (initDims.display === 'double' ? 2 : 1));
@@ -388,6 +391,11 @@
     //  İÇİNDEKİLER
     // ============================================
     function buildTOC() {
+      if (!TOC_ITEMS.length) {
+        // TOC yoksa sekmeyi ve butonu gizle
+        $('#toc-btn, #panel-toc-tab').hide();
+        return;
+      }
       var list = $('#toc-list');
       TOC_ITEMS.forEach(function(item) {
         var a  = $('<a href="#"></a>').text(item.title);
