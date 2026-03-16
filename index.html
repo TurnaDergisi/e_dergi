@@ -12,7 +12,6 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
   <script src="https://raw.githack.com/blasten/turn.js/master/turn.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
   <link rel="stylesheet" href="stil.css">
 </head>
@@ -22,7 +21,6 @@
   <div id="loading">
     <div class="spinner"></div>
     <div id="loading-text">Dergi Yükleniyor...</div>
-    <div id="loading-progress"></div>
   </div>
 
   <!-- Ana Uygulama -->
@@ -66,12 +64,11 @@
         </div>
       </div>
 
-    </div><!-- /#middle-area -->
+    </div>
 
     <!-- Alt Toolbar -->
     <div id="bottom-toolbar">
 
-      <!-- Sol grup: Panel toggleları -->
       <div class="btb-group">
         <button type="button" id="thumbnail-btn" class="tb-btn" title="Küçük Resimler">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -83,21 +80,19 @@
         </button>
       </div>
 
-      <!-- Orta grup: Sayfa navigasyonu -->
       <div class="btb-group">
         <button type="button" id="prev-btn" class="tb-btn" title="Önceki Sayfa">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div id="page-nav">
           <input type="number" id="page-input" min="1" value="1" title="Sayfa numarası" aria-label="Sayfa numarası">
-          <span id="page-total">/ 0</span>
+          <span id="page-total">/ 48</span>
         </div>
         <button type="button" id="next-btn" class="tb-btn" title="Sonraki Sayfa">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
 
-      <!-- Sağ grup: Zoom, Oto, Ses, Tam Ekran -->
       <div class="btb-group">
         <button type="button" id="zoom-out-btn" class="tb-btn" title="Uzaklaştır">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -136,9 +131,8 @@
         </button>
       </div>
 
-    </div><!-- /#bottom-toolbar -->
-
-  </div><!-- /#app -->
+    </div>
+  </div>
 
   <!-- Arka Plan Müziği -->
   <audio id="background-music" loop>
@@ -149,12 +143,17 @@
     // ============================================
     //  YAPILANDIRMA
     // ============================================
-    var PDF_URL        = 'dergi.pdf';
+    var TOTAL_PAGES    = 48;
+    var IMG_PATH       = 'eylul/files/mobile/';   // {n}.jpg
+    var THUMB_PATH     = 'eylul/files/thumb/';    // {n}.jpg
+    // Sayfa boyutları (1080x1440 px, oran = 0.75)
+    var PAGE_W         = 1080;
+    var PAGE_H         = 1440;
     var TOOLBAR_TOP    = 44;
     var TOOLBAR_BOTTOM = 48;
-    var AUTOPLAY_MS    = 3000;  // Otomatik oynatma aralığı (ms)
+    var AUTOPLAY_MS    = 3000;
 
-    // İçindekiler — sayfa numaralarını kendi dergine göre düzenle
+    // İçindekiler — isteğe göre düzenle
     var TOC_ITEMS = [
       { title: 'Kapak',          page: 1  },
       { title: 'Editörden',      page: 3  },
@@ -171,120 +170,66 @@
     //  BAŞLANGIÇ
     // ============================================
     $(document).ready(function() {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      // Sayfa boyutlarını hesapla (henüz Turn.js başlamadan)
+      var initDims = calculateFlipbookDimensions();
+      var pageW    = Math.floor(initDims.width  / (initDims.display === 'double' ? 2 : 1));
+      var pageH    = initDims.height;
 
-      var loadingTask = pdfjsLib.getDocument(PDF_URL);
+      // Sayfaları flipbook'a ekle — boyutu JS'den set et
+      for (var i = 1; i <= TOTAL_PAGES; i++) {
+        var img = $('<img>')
+          .attr('src', IMG_PATH + i + '.jpg')
+          .attr('alt', 'Sayfa ' + i)
+          .addClass('page-img');
+        $('<div class="page"></div>')
+          .css({ width: pageW + 'px', height: pageH + 'px' })
+          .append(img)
+          .appendTo('#flipbook');
+      }
 
-      loadingTask.promise.then(function(pdf) {
-        var totalPages = pdf.numPages;
-        var renderedPages = [];
+      // İlk resim yüklenince (veya max 3sn) başlat
+      var firstImg = $('#flipbook .page:first img')[0];
+      var started  = false;
 
-        $('#page-input').attr('max', totalPages);
-        $('#page-total').text('/ ' + totalPages);
-
-        // Sayfaları sırayla render et
-        var renderChain = Promise.resolve();
-
-        for (var i = 1; i <= totalPages; i++) {
-          (function(num) {
-            renderChain = renderChain.then(function() {
-              return renderPage(pdf, num).then(function(data) {
-                renderedPages.push(data);
-                var pct = Math.round((num / totalPages) * 100);
-                $('#loading-progress').text(num + ' / ' + totalPages + ' sayfa (' + pct + '%)');
-              });
-            });
-          })(i);
-        }
-
-        renderChain.then(function() {
-          renderedPages.sort(function(a, b) { return a.pageNum - b.pageNum; });
-
-          // Sayfaları flipbook'a ekle
-          renderedPages.forEach(function(data) {
-            var div = $('<div></div>').addClass('page').css({
-              width:          data.pageWidth  + 'px',
-              height:         data.pageHeight + 'px',
-              display:        'flex',
-              justifyContent: 'center',
-              alignItems:     'center',
-              overflow:       'hidden'
-            });
-            $(data.canvas).css({ width: '100%', height: '100%', objectFit: 'fill', display: 'block' });
-            div.append(data.canvas);
-            $('#flipbook').append(div);
-          });
-
-          // Loading'i gizle, uygulamayı göster
-          $('#loading').fadeOut(300, function() {
-            $('#app').addClass('visible');
-            initFlipbook(totalPages);
-            buildThumbnails(renderedPages, totalPages);
-            buildTOC();
-            initMusicControls();
-            initAutoplay(totalPages);
-            initFullscreen();
-          });
+      function startApp() {
+        if (started) return;
+        started = true;
+        $('#loading').fadeOut(300, function() {
+          $('#app').addClass('visible');
+          initFlipbook();
+          buildThumbnails();
+          buildTOC();
+          initPanelControls();
+          initMusicControls();
+          initAutoplay();
+          initFullscreen();
         });
+      }
 
-      }).catch(function(err) {
-        $('#loading-text').text('PDF yüklenemedi!');
-        $('#loading-progress').html('<small style="color:#f87171;">' + err.message + '</small>');
-      });
-
-      // Panel buton olayları (DOM hazır olunca bağla)
-      initPanelControls();
+      if (firstImg.complete) {
+        startApp();
+      } else {
+        $(firstImg).on('load error', startApp);
+        setTimeout(startApp, 3000);
+      }
     });
-
-    // ============================================
-    //  PDF SAYFA RENDER
-    // ============================================
-    function renderPage(pdf, pageNum) {
-      return pdf.getPage(pageNum).then(function(page) {
-        var pixelRatio = window.devicePixelRatio || 1;
-        var scale      = Math.min(pixelRatio * 1.5, 3.0);
-        var viewport   = page.getViewport({ scale: scale });
-
-        var canvas  = document.createElement('canvas');
-        canvas.width  = viewport.width;
-        canvas.height = viewport.height;
-
-        return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise.then(function() {
-          // Thumbnail: ana canvas'tan küçülterek türet (yeniden render yok)
-          var THUMB_W = 88;
-          var thumbH  = Math.round(THUMB_W * (canvas.height / canvas.width));
-          var thumb   = document.createElement('canvas');
-          thumb.width  = THUMB_W;
-          thumb.height = thumbH;
-          thumb.getContext('2d').drawImage(canvas, 0, 0, THUMB_W, thumbH);
-
-          return {
-            pageNum:    pageNum,
-            canvas:     canvas,
-            thumb:      thumb,
-            pageWidth:  viewport.width,
-            pageHeight: viewport.height
-          };
-        });
-      });
-    }
 
     // ============================================
     //  FLIPBOOK BOYUT HESAPLAMA
     // ============================================
     function calculateFlipbookDimensions() {
-      var panelOpen   = $('#side-panel').hasClass('open');
-      var panelWidth  = panelOpen ? ($('#side-panel').width() || 240) : 0;
-      var screenW     = $(window).width() - panelWidth;
-      var screenH     = $(window).height() - TOOLBAR_TOP - TOOLBAR_BOTTOM;
-      var isSingle    = screenW < 600;
+      var panelOpen = $('#side-panel').hasClass('open');
+      var panelW    = panelOpen ? ($('#side-panel').outerWidth() || 240) : 0;
+      var screenW   = $(window).width() - panelW;
+      var screenH   = $(window).height() - TOOLBAR_TOP - TOOLBAR_BOTTOM;
+      var isSingle  = screenW < 600;
 
-      var pageRatio   = 1 / 1.414;   // A4 oranı
-      var flipRatio   = isSingle ? pageRatio : pageRatio * 2;
+      // Sayfa oranı: 1080 / 1440 = 0.75 (en/boy)
+      var pageRatio = PAGE_W / PAGE_H;
+      var flipRatio = isSingle ? pageRatio : pageRatio * 2;
 
-      var maxW = screenW * 0.95;
-      var maxH = screenH * 0.95;
+      var maxW = screenW * 0.96;
+      var maxH = screenH * 0.96;
       var w = maxW;
       var h = w / flipRatio;
 
@@ -297,7 +242,7 @@
     // ============================================
     //  FLIPBOOK BAŞLATMA
     // ============================================
-    function initFlipbook(totalPages) {
+    function initFlipbook() {
       if (typeof $.fn.turn !== 'function') {
         alert('Turn.js yüklenemedi. Sayfayı yenileyin.');
         return;
@@ -317,21 +262,21 @@
         when: {
           turned: function(e, page) {
             $('#page-input').val(page);
-            // Thumbnail'deki aktif öğeyi güncelle
             $('.thumb-item').removeClass('current');
             $('.thumb-item[data-page="' + page + '"]').addClass('current');
           }
         }
       });
 
-      // --- Navigasyon ---
-      $('#prev-btn').click(function() { $('#flipbook').turn('previous'); });
-      $('#next-btn').click(function() { $('#flipbook').turn('next'); });
+      $('#page-input').val(1).attr('max', TOTAL_PAGES);
 
-      // Sayfa numarası inputu
+      // Navigasyon
+      $('#prev-btn').on('click', function() { $('#flipbook').turn('previous'); });
+      $('#next-btn').on('click', function() { $('#flipbook').turn('next'); });
+
       $('#page-input').on('change', function() {
         var p = parseInt($(this).val(), 10);
-        if (p >= 1 && p <= totalPages) {
+        if (p >= 1 && p <= TOTAL_PAGES) {
           $('#flipbook').turn('page', p);
         } else {
           $(this).val($('#flipbook').turn('page'));
@@ -339,18 +284,18 @@
       });
 
       // Klavye
-      $(document).keydown(function(e) {
+      $(document).on('keydown', function(e) {
         if ($(e.target).is('input')) return;
         if (e.keyCode === 37) $('#flipbook').turn('previous');
         if (e.keyCode === 39) $('#flipbook').turn('next');
       });
 
-      // Tıklama ile sayfa çevirme (masaüstü)
+      // Tıklama ile sayfa çevirme
       var isDragging = false;
       $('#flipbook')
         .on('mousedown', function() { isDragging = false; })
         .on('mousemove', function() { isDragging = true; })
-        .on('mouseup',   function(e) {
+        .on('mouseup', function(e) {
           if (isDragging) return;
           var x = e.pageX - $(this).offset().left;
           if (x < $(this).width() / 2) $(this).turn('previous');
@@ -361,7 +306,7 @@
       // Panzoom
       initPanzoom();
 
-      // Pencere boyutu değişince yeniden boyutlandır
+      // Resize
       $(window).on('resize orientationchange', function() {
         clearTimeout(window.resizeTimer);
         window.resizeTimer = setTimeout(resizeFlipbook, 250);
@@ -375,6 +320,9 @@
         if ($('#flipbook').turn('display') !== d.display) {
           $('#flipbook').turn('display', d.display);
         }
+        // Sayfa div boyutlarını da güncelle
+        var pw = Math.floor(d.width / (d.display === 'double' ? 2 : 1));
+        $('#flipbook .page').css({ width: pw + 'px', height: d.height + 'px' });
       } catch(e) {}
     }
 
@@ -400,7 +348,7 @@
         setTimeout(resizeFlipbook, 50);
       });
 
-      // Çift dokunma ile zoom geçişi (mobil)
+      // Çift dokunma (mobil)
       var lastTap = 0;
       $('#flipbook-container').on('touchend', function(e) {
         var now = Date.now();
@@ -411,7 +359,6 @@
         lastTap = now;
       });
 
-      // Zoom > 1 iken sayfa çevirmeyi durdur
       elem.addEventListener('panzoomchange', function(ev) {
         $('#flipbook').css('pointer-events', ev.detail.scale <= 1 ? 'auto' : 'none');
       });
@@ -420,27 +367,25 @@
     // ============================================
     //  THUMBNAIL PANELİ
     // ============================================
-    function buildThumbnails(pages, totalPages) {
+    function buildThumbnails() {
       var grid = $('#thumbnail-grid');
-      pages.forEach(function(data) {
-        var wrap  = $('<div class="thumb-item"></div>').attr('data-page', data.pageNum);
-        var label = $('<span class="thumb-label"></span>').text(data.pageNum);
-        $(data.thumb).addClass('thumb-canvas');
-        wrap.append(data.thumb).append(label);
+      for (var i = 1; i <= TOTAL_PAGES; i++) {
+        var wrap  = $('<div class="thumb-item"></div>').attr('data-page', i);
+        var img   = $('<img class="thumb-canvas">').attr('src', THUMB_PATH + i + '.jpg').attr('alt', 'Sayfa ' + i);
+        var label = $('<span class="thumb-label"></span>').text(i);
+        wrap.append(img).append(label);
         wrap.on('click', function() {
           var p = parseInt($(this).data('page'), 10);
           $('#flipbook').turn('page', p);
           if ($(window).width() < 620) closeSidePanel();
         });
         grid.append(wrap);
-      });
-
-      // İlk sayfayı aktif yap
+      }
       $('.thumb-item[data-page="1"]').addClass('current');
     }
 
     // ============================================
-    //  İÇİNDEKİLER (TOC)
+    //  İÇİNDEKİLER
     // ============================================
     function buildTOC() {
       var list = $('#toc-list');
@@ -460,7 +405,6 @@
     //  PANEL KONTROLLERİ
     // ============================================
     function openPanel(tab) {
-      // tab: 'thumbnails' veya 'toc'
       $('#side-panel').addClass('open');
       if (tab === 'toc') {
         $('#panel-thumbnails').hide();
@@ -488,31 +432,23 @@
 
     function initPanelControls() {
       $('#thumbnail-btn').on('click', function() {
-        var isOpen  = $('#side-panel').hasClass('open');
-        var isMine  = $(this).hasClass('active');
-        if (isOpen && isMine) closeSidePanel();
+        if ($('#side-panel').hasClass('open') && $(this).hasClass('active')) closeSidePanel();
         else openPanel('thumbnails');
       });
-
       $('#toc-btn').on('click', function() {
-        var isOpen = $('#side-panel').hasClass('open');
-        var isMine = $(this).hasClass('active');
-        if (isOpen && isMine) closeSidePanel();
+        if ($('#side-panel').hasClass('open') && $(this).hasClass('active')) closeSidePanel();
         else openPanel('toc');
       });
-
       $('#panel-thumbnails-tab').on('click', function() {
         $('#panel-thumbnails').show(); $('#panel-toc').hide();
         $(this).addClass('active'); $('#panel-toc-tab').removeClass('active');
         $('#thumbnail-btn').addClass('active'); $('#toc-btn').removeClass('active');
       });
-
       $('#panel-toc-tab').on('click', function() {
         $('#panel-toc').show(); $('#panel-thumbnails').hide();
         $(this).addClass('active'); $('#panel-thumbnails-tab').removeClass('active');
         $('#toc-btn').addClass('active'); $('#thumbnail-btn').removeClass('active');
       });
-
       $('#panel-close-btn').on('click', closeSidePanel);
     }
 
@@ -547,7 +483,7 @@
     // ============================================
     //  OTOMATİK OYNATMA
     // ============================================
-    function initAutoplay(totalPages) {
+    function initAutoplay() {
       var timer = null;
 
       $('#autoplay-btn').on('click', function() {
@@ -555,16 +491,14 @@
           clearInterval(timer);
           timer = null;
           $(this).removeClass('active');
-          // Play ikonu
           document.getElementById('autoplay-icon').innerHTML =
             '<polygon points="5 3 19 12 5 21 5 3"/>';
         } else {
           timer = setInterval(function() {
             var curr = $('#flipbook').turn('page');
-            $('#flipbook').turn(curr >= totalPages ? 'first' : 'next');
+            $('#flipbook').turn(curr >= TOTAL_PAGES ? 'first' : 'next');
           }, AUTOPLAY_MS);
           $(this).addClass('active');
-          // Pause ikonu
           document.getElementById('autoplay-icon').innerHTML =
             '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
         }
@@ -577,9 +511,8 @@
     function initFullscreen() {
       var btn  = document.getElementById('fullscreen-btn');
       var icon = document.getElementById('fullscreen-icon');
-
-      var ENTER_PATH = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
-      var EXIT_PATH  = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/>';
+      var ENTER = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
+      var EXIT  = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/>';
 
       btn.addEventListener('click', function() {
         if (!document.fullscreenElement) {
@@ -592,7 +525,7 @@
       });
 
       document.addEventListener('fullscreenchange', function() {
-        icon.innerHTML = document.fullscreenElement ? EXIT_PATH : ENTER_PATH;
+        icon.innerHTML = document.fullscreenElement ? EXIT : ENTER;
       });
     }
   </script>
