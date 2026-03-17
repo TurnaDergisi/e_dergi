@@ -2,558 +2,338 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>E-Dergi</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turna Dergisi - E-Arşiv</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #38bdf8;
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #f43f5e;
+    }
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Dergi yapılandırması (setup.py tarafından üretilir) -->
-  <script src="dergi_config.js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
-  <script src="https://raw.githack.com/blasten/turn.js/master/turn.min.js"></script>
-  <script src="https://unpkg.com/@panzoom/panzoom/dist/panzoom.min.js"></script>
-  <link rel="stylesheet" href="stil.css">
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    .shelf-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 60px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+
+    header h1 {
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      font-weight: 800;
+      background: linear-gradient(to right, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1.25rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Featured Section */
+    .featured-section {
+      margin-bottom: 100px;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .featured-issue {
+      display: flex;
+      background: var(--bg-card);
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .featured-issue:hover {
+      transform: translateY(-8px) scale(1.01);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .featured-img {
+      width: 45%;
+      aspect-ratio: 3/4;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .featured-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .featured-content {
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      flex: 1;
+    }
+
+    .tag {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .featured-content h2 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      margin: 0 0 20px 0;
+      line-height: 1.1;
+    }
+
+    .featured-content p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 15px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 32px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-weight: 700;
+      transition: all 0.2s;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #0f172a;
+    }
+
+    .btn-primary:hover {
+      background: white;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -5px rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Grid Section */
+    .issue-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 40px;
+    }
+
+    .issue-card {
+      background: var(--bg-card);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .issue-card:hover {
+      transform: translateY(-12px);
+      border-color: var(--primary);
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+    }
+
+    .card-img {
+      aspect-ratio: 3/4;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .card-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .issue-card:hover .card-img img {
+      transform: scale(1.08);
+    }
+
+    .card-content {
+      padding: 24px;
+    }
+
+    .card-content h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .card-content p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 8px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 80px 0 40px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      margin-top: 100px;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .shelf-container {
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @media (max-width: 900px) {
+      .featured-issue {
+        flex-direction: column;
+      }
+      .featured-img {
+        width: 100%;
+      }
+      .featured-content {
+        padding: 40px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .btn-group {
+        flex-direction: column;
+      }
+      header h1 {
+        font-size: 2.2rem;
+      }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Yükleme Ekranı -->
-  <div id="loading">
-    <div class="spinner"></div>
-    <div id="loading-text">Dergi Yükleniyor...</div>
+  <div class="shelf-container">
+    <header>
+      <h1>Turna Dergisi</h1>
+      <p>Kültür, gezi ve eğitim dünyasına dijital bir yolculuk. E-Arşiv sayfamıza hoş geldiniz.</p>
+    </header>
+
+    <div class="featured-section">
+      <div class="section-title">Yeni Sayı</div>
+      <div class="featured-issue">
+        <div class="featured-img">
+          <img src="sayi6/files/mobile/1.jpg" alt="Sayı 6 Kapak">
+        </div>
+        <div class="featured-content">
+          <span class="tag">Güncel Sayı</span>
+          <h2>Mart 2026<br>Sayı 6</h2>
+          <p>Turna Dergisi'nin merakla beklenen yeni sayısında Kayseri'nin saklı güzelliklerini ve eğitimdeki yenilikleri keşfedin.</p>
+          <div class="btn-group">
+            <a href="sayi6/mobile/index.html" class="btn btn-primary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              Şimdi Oku
+            </a>
+            <a href="dergi.pdf" class="btn btn-secondary" download>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              PDF İndir
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Önceki Sayılar</div>
+    <div class="issue-grid">
+      
+      <!-- Sayı 6 Card -->
+      <a href="sayi6/mobile/index.html" class="issue-card">
+        <div class="card-img">
+          <img src="sayi6/files/mobile/1.jpg" alt="Sayı 6">
+        </div>
+        <div class="card-content">
+          <h3>Sayı 6</h3>
+          <p>Mart 2026</p>
+        </div>
+      </a>
+
+      <!-- Eylül 2022 Card -->
+      <a href="eylul/mobile/index.html" class="issue-card">
+        <div class="card-img">
+          <img src="eylul/files/mobile/1.jpg" alt="Eylül 2022">
+        </div>
+        <div class="card-content">
+          <h3>Eylül 2022</h3>
+          <p>Eylül Sayısı</p>
+        </div>
+      </a>
+
+    </div>
+
+    <footer>
+      &copy; 2026 Turna Dergisi. Tüm hakları saklıdır.
+    </footer>
   </div>
 
-  <!-- Ana Uygulama -->
-  <div id="app">
-
-    <!-- Üst Toolbar -->
-    <div id="top-toolbar">
-      <div class="tb-left">
-        <span class="app-title">Turna Dergisi</span>
-      </div>
-      <div class="tb-right">
-        <a id="download-btn" class="tb-btn" href="dergi.pdf" download title="PDF İndir">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span class="btn-label">İndir</span>
-        </a>
-      </div>
-    </div>
-
-    <!-- Orta Alan: Panel + Flipbook -->
-    <div id="middle-area">
-
-      <!-- Sol Panel -->
-      <div id="side-panel">
-        <div id="panel-header">
-          <button type="button" id="panel-thumbnails-tab" class="panel-tab active">Sayfalar</button>
-          <button type="button" id="panel-toc-tab" class="panel-tab">İçindekiler</button>
-          <button type="button" id="panel-close-btn" title="Kapat">✕</button>
-        </div>
-        <div id="panel-thumbnails" class="panel-content">
-          <div id="thumbnail-grid"></div>
-        </div>
-        <div id="panel-toc" class="panel-content panel-content--hidden">
-          <ul id="toc-list"></ul>
-        </div>
-      </div>
-
-      <!-- Flipbook Konteyneri -->
-      <div id="flipbook-container">
-        <div id="flipbook-wrapper">
-          <div id="flipbook"></div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Alt Toolbar -->
-    <div id="bottom-toolbar">
-
-      <div class="btb-group">
-        <button type="button" id="thumbnail-btn" class="tb-btn" title="Küçük Resimler">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          <span class="btn-label">Sayfalar</span>
-        </button>
-        <button type="button" id="toc-btn" class="tb-btn" title="İçindekiler">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
-          <span class="btn-label">İçerik</span>
-        </button>
-      </div>
-
-      <div class="btb-group">
-        <button type="button" id="prev-btn" class="tb-btn" title="Önceki Sayfa">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <div id="page-nav">
-          <input type="number" id="page-input" min="1" value="1" title="Sayfa numarası" aria-label="Sayfa numarası">
-          <span id="page-total">/ 48</span>
-        </div>
-        <button type="button" id="next-btn" class="tb-btn" title="Sonraki Sayfa">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-
-      <div class="btb-group">
-        <button type="button" id="zoom-out-btn" class="tb-btn" title="Uzaklaştır">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-        </button>
-        <button type="button" id="zoom-reset-btn" class="tb-btn" title="Sıfırla">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-        </button>
-        <button type="button" id="zoom-in-btn" class="tb-btn" title="Yakınlaştır">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-        </button>
-
-        <div class="tb-divider"></div>
-
-        <button type="button" id="autoplay-btn" class="tb-btn" title="Otomatik Oynat">
-          <svg id="autoplay-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          <span class="btn-label">Oto</span>
-        </button>
-
-        <button type="button" id="sound-btn" class="tb-btn" title="Ses Aç/Kapat">
-          <svg id="sound-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-          </svg>
-        </button>
-        <div class="volume-wrapper">
-          <input type="range" id="volume-slider" min="0" max="100" value="50" title="Ses seviyesi" aria-label="Ses seviyesi">
-        </div>
-
-        <div class="tb-divider"></div>
-
-        <button type="button" id="fullscreen-btn" class="tb-btn" title="Tam Ekran">
-          <svg id="fullscreen-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-          </svg>
-        </button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Arka Plan Müziği -->
-  <audio id="background-music" loop>
-    <source src="https://drive.google.com/uc?export=download&id=12FeOxyc6Q_yg1vm-Mt7k18Uz3IBe5xDd" type="audio/mpeg">
-  </audio>
-
-  <script>
-    // ============================================
-    //  YAPILANDIRMA  (dergi_config.js'den okunur)
-    // ============================================
-    var cfg            = (typeof DERGI_CONFIG !== 'undefined') ? DERGI_CONFIG : {};
-    var TOTAL_PAGES    = cfg.totalPages || 48;
-    var IMG_PATH       = cfg.imgPath    || 'eylul/files/mobile/';
-    var THUMB_PATH     = cfg.thumbPath  || 'eylul/files/thumb/';
-    var PAGE_W         = cfg.pageWidth  || 1080;
-    var PAGE_H         = cfg.pageHeight || 1440;
-    var TOOLBAR_TOP    = 44;
-    var TOOLBAR_BOTTOM = 48;
-    var AUTOPLAY_MS    = 3000;
-
-    // Başlık (document.title hemen, DOM elementi ready'de)
-    if (cfg.title) {
-      document.title = cfg.title + ' - E-Dergi';
-    }
-
-    // İçindekiler — dergi_config.js'deki tocItems'dan okunur
-    var TOC_ITEMS = cfg.tocItems || [];
-
-    // ============================================
-    //  BAŞLANGIÇ
-    // ============================================
-    $(document).ready(function() {
-      // Başlığı toolbar'a yaz
-      if (cfg.title) { $('.app-title').text(cfg.title); }
-
-      // Sayfa numarası toplamını güncelle
-      $('#page-total').text('/ ' + TOTAL_PAGES);
-
-      // Sayfa boyutlarını hesapla (henüz Turn.js başlamadan)
-      var initDims = calculateFlipbookDimensions();
-      var pageW    = Math.floor(initDims.width  / (initDims.display === 'double' ? 2 : 1));
-      var pageH    = initDims.height;
-
-      // Sayfaları flipbook'a ekle — boyutu JS'den set et
-      for (var i = 1; i <= TOTAL_PAGES; i++) {
-        var img = $('<img>')
-          .attr('src', IMG_PATH + i + '.jpg')
-          .attr('alt', 'Sayfa ' + i)
-          .addClass('page-img');
-        $('<div class="page"></div>')
-          .css({ width: pageW + 'px', height: pageH + 'px' })
-          .append(img)
-          .appendTo('#flipbook');
-      }
-
-      // İlk resim yüklenince (veya max 3sn) başlat
-      var firstImg = $('#flipbook .page:first img')[0];
-      var started  = false;
-
-      function startApp() {
-        if (started) return;
-        started = true;
-        $('#loading').fadeOut(300, function() {
-          $('#app').addClass('visible');
-          initFlipbook();
-          buildThumbnails();
-          buildTOC();
-          initPanelControls();
-          initMusicControls();
-          initAutoplay();
-          initFullscreen();
-        });
-      }
-
-      if (firstImg.complete) {
-        startApp();
-      } else {
-        $(firstImg).on('load error', startApp);
-        setTimeout(startApp, 3000);
-      }
-    });
-
-    // ============================================
-    //  FLIPBOOK BOYUT HESAPLAMA
-    // ============================================
-    function calculateFlipbookDimensions() {
-      var panelOpen = $('#side-panel').hasClass('open');
-      var panelW    = panelOpen ? ($('#side-panel').outerWidth() || 240) : 0;
-      
-      // Use documentElement.clientWidth/Height for more robust mobile measurements
-      var screenW   = document.documentElement.clientWidth - panelW;
-      var screenH   = document.documentElement.clientHeight - 
-                      ($('#top-toolbar').outerHeight() || TOOLBAR_TOP) - 
-                      ($('#bottom-toolbar').outerHeight() || TOOLBAR_BOTTOM);
-      
-      var isSingle  = screenW < 600;
-
-      // Sayfa oranı: 1080 / 1440 = 0.75 (en/boy)
-      var pageRatio = PAGE_W / PAGE_H;
-      var flipRatio = isSingle ? pageRatio : pageRatio * 2;
-
-      var maxW = screenW * 0.98; // Use a slightly larger area on mobile
-      var maxH = screenH * 0.98;
-      
-      var w = maxW;
-      var h = w / flipRatio;
-
-      if (h > maxH) { 
-        h = maxH; 
-        w = h * flipRatio; 
-      }
-      
-      // Prevent double page mode from being too wide
-      if (!isSingle && w > 1400) { 
-        w = 1400; 
-        h = w / flipRatio; 
-      }
-
-      return { 
-        width: Math.floor(w), 
-        height: Math.floor(h), 
-        display: isSingle ? 'single' : 'double' 
-      };
-    }
-
-    // ============================================
-    //  FLIPBOOK BAŞLATMA
-    // ============================================
-    function initFlipbook() {
-      if (typeof $.fn.turn !== 'function') {
-        alert('Turn.js yüklenemedi. Sayfayı yenileyin.');
-        return;
-      }
-
-      var dims = calculateFlipbookDimensions();
-
-      $('#flipbook').turn({
-        width:        dims.width,
-        height:       dims.height,
-        autoCenter:   true,
-        elevation:    50,
-        gradients:    true,
-        acceleration: true,
-        display:      dims.display,
-        duration:     800,
-        when: {
-          turned: function(e, page) {
-            $('#page-input').val(page);
-            $('.thumb-item').removeClass('current');
-            $('.thumb-item[data-page="' + page + '"]').addClass('current');
-          }
-        }
-      });
-
-      $('#page-input').val(1).attr('max', TOTAL_PAGES);
-
-      // Navigasyon
-      $('#prev-btn').on('click', function() { $('#flipbook').turn('previous'); });
-      $('#next-btn').on('click', function() { $('#flipbook').turn('next'); });
-
-      $('#page-input').on('change', function() {
-        var p = parseInt($(this).val(), 10);
-        if (p >= 1 && p <= TOTAL_PAGES) {
-          $('#flipbook').turn('page', p);
-        } else {
-          $(this).val($('#flipbook').turn('page'));
-        }
-      });
-
-      // Klavye
-      $(document).on('keydown', function(e) {
-        if ($(e.target).is('input')) return;
-        if (e.keyCode === 37) $('#flipbook').turn('previous');
-        if (e.keyCode === 39) $('#flipbook').turn('next');
-      });
-
-      // Tıklama ile sayfa çevirme
-      var isDragging = false;
-      $('#flipbook')
-        .on('mousedown', function() { isDragging = false; })
-        .on('mousemove', function() { isDragging = true; })
-        .on('mouseup', function(e) {
-          if (isDragging) return;
-          var x = e.pageX - $(this).offset().left;
-          if (x < $(this).width() / 2) $(this).turn('previous');
-          else $(this).turn('next');
-        })
-        .css('cursor', 'pointer');
-
-      // Panzoom
-      initPanzoom();
-
-      // Resize
-      $(window).on('resize orientationchange', function() {
-        clearTimeout(window.resizeTimer);
-        window.resizeTimer = setTimeout(resizeFlipbook, 250);
-      });
-    }
-
-    function resizeFlipbook() {
-      var d = calculateFlipbookDimensions();
-      try {
-        $('#flipbook').turn('size', d.width, d.height);
-        if ($('#flipbook').turn('display') !== d.display) {
-          $('#flipbook').turn('display', d.display);
-        }
-        // Sayfa div boyutlarını da güncelle
-        var pw = Math.floor(d.width / (d.display === 'double' ? 2 : 1));
-        $('#flipbook .page').css({ width: pw + 'px', height: d.height + 'px' });
-      } catch(e) {}
-    }
-
-    // ============================================
-    //  PANZOOM
-    // ============================================
-    function initPanzoom() {
-      var elem    = document.getElementById('flipbook-wrapper');
-      var panzoom = Panzoom(elem, {
-        maxScale: 3,
-        minScale: 1,
-        contain:  'outside',
-        step:     0.3,
-        cursor:   'default'
-      });
-
-      elem.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
-
-      document.getElementById('zoom-in-btn').addEventListener('click',  panzoom.zoomIn);
-      document.getElementById('zoom-out-btn').addEventListener('click', panzoom.zoomOut);
-      document.getElementById('zoom-reset-btn').addEventListener('click', function() {
-        panzoom.reset();
-        setTimeout(resizeFlipbook, 50);
-      });
-
-      // Çift dokunma (mobil)
-      var lastTap = 0;
-      $('#flipbook-container').on('touchend', function(e) {
-        var now = Date.now();
-        if (now - lastTap < 300 && now - lastTap > 0) {
-          panzoom.getScale() > 1.1 ? panzoom.reset() : panzoom.zoom(1.5, { animate: true });
-          e.preventDefault();
-        }
-        lastTap = now;
-      });
-
-      elem.addEventListener('panzoomchange', function(ev) {
-        $('#flipbook').css('pointer-events', ev.detail.scale <= 1 ? 'auto' : 'none');
-      });
-    }
-
-    // ============================================
-    //  THUMBNAIL PANELİ
-    // ============================================
-    function buildThumbnails() {
-      var grid = $('#thumbnail-grid');
-      for (var i = 1; i <= TOTAL_PAGES; i++) {
-        var wrap  = $('<div class="thumb-item"></div>').attr('data-page', i);
-        var img   = $('<img class="thumb-canvas">').attr('src', THUMB_PATH + i + '.jpg').attr('alt', 'Sayfa ' + i);
-        var label = $('<span class="thumb-label"></span>').text(i);
-        wrap.append(img).append(label);
-        wrap.on('click', function() {
-          var p = parseInt($(this).data('page'), 10);
-          $('#flipbook').turn('page', p);
-          if ($(window).width() < 620) closeSidePanel();
-        });
-        grid.append(wrap);
-      }
-      $('.thumb-item[data-page="1"]').addClass('current');
-    }
-
-    // ============================================
-    //  İÇİNDEKİLER
-    // ============================================
-    function buildTOC() {
-      if (!TOC_ITEMS.length) {
-        // TOC yoksa sekmeyi ve butonu gizle
-        $('#toc-btn, #panel-toc-tab').hide();
-        return;
-      }
-      var list = $('#toc-list');
-      TOC_ITEMS.forEach(function(item) {
-        var a  = $('<a href="#"></a>').text(item.title);
-        var pg = $('<span class="toc-page"></span>').text(item.page);
-        a.on('click', function(e) {
-          e.preventDefault();
-          $('#flipbook').turn('page', item.page);
-          if ($(window).width() < 620) closeSidePanel();
-        });
-        $('<li></li>').append(a).append(pg).appendTo(list);
-      });
-    }
-
-    // ============================================
-    //  PANEL KONTROLLERİ
-    // ============================================
-    function openPanel(tab) {
-      $('#side-panel').addClass('open');
-      if (tab === 'toc') {
-        $('#panel-thumbnails').hide();
-        $('#panel-toc').show();
-        $('#panel-toc-tab').addClass('active');
-        $('#panel-thumbnails-tab').removeClass('active');
-        $('#toc-btn').addClass('active');
-        $('#thumbnail-btn').removeClass('active');
-      } else {
-        $('#panel-toc').hide();
-        $('#panel-thumbnails').show();
-        $('#panel-thumbnails-tab').addClass('active');
-        $('#panel-toc-tab').removeClass('active');
-        $('#thumbnail-btn').addClass('active');
-        $('#toc-btn').removeClass('active');
-      }
-      setTimeout(resizeFlipbook, 280);
-    }
-
-    function closeSidePanel() {
-      $('#side-panel').removeClass('open');
-      $('#thumbnail-btn, #toc-btn').removeClass('active');
-      setTimeout(resizeFlipbook, 280);
-    }
-
-    function initPanelControls() {
-      $('#thumbnail-btn').on('click', function() {
-        if ($('#side-panel').hasClass('open') && $(this).hasClass('active')) closeSidePanel();
-        else openPanel('thumbnails');
-      });
-      $('#toc-btn').on('click', function() {
-        if ($('#side-panel').hasClass('open') && $(this).hasClass('active')) closeSidePanel();
-        else openPanel('toc');
-      });
-      $('#panel-thumbnails-tab').on('click', function() {
-        $('#panel-thumbnails').show(); $('#panel-toc').hide();
-        $(this).addClass('active'); $('#panel-toc-tab').removeClass('active');
-        $('#thumbnail-btn').addClass('active'); $('#toc-btn').removeClass('active');
-      });
-      $('#panel-toc-tab').on('click', function() {
-        $('#panel-toc').show(); $('#panel-thumbnails').hide();
-        $(this).addClass('active'); $('#panel-thumbnails-tab').removeClass('active');
-        $('#toc-btn').addClass('active'); $('#thumbnail-btn').removeClass('active');
-      });
-      $('#panel-close-btn').on('click', closeSidePanel);
-    }
-
-    // ============================================
-    //  MÜZİK KONTROLLERİ
-    // ============================================
-    function initMusicControls() {
-      var audio     = document.getElementById('background-music');
-      var isPlaying = false;
-      audio.volume  = 0.5;
-
-      $('#sound-btn').on('click', function() {
-        if (isPlaying) {
-          audio.pause();
-          isPlaying = false;
-          $(this).removeClass('active');
-        } else {
-          audio.play()
-            .then(function() {
-              isPlaying = true;
-              $('#sound-btn').addClass('active');
-            })
-            .catch(function(e) { console.warn('Ses çalınamadı:', e); });
-        }
-      });
-
-      $('#volume-slider').on('input', function() {
-        audio.volume = $(this).val() / 100;
-      });
-    }
-
-    // ============================================
-    //  OTOMATİK OYNATMA
-    // ============================================
-    function initAutoplay() {
-      var timer = null;
-
-      $('#autoplay-btn').on('click', function() {
-        if (timer) {
-          clearInterval(timer);
-          timer = null;
-          $(this).removeClass('active');
-          document.getElementById('autoplay-icon').innerHTML =
-            '<polygon points="5 3 19 12 5 21 5 3"/>';
-        } else {
-          timer = setInterval(function() {
-            var curr = $('#flipbook').turn('page');
-            $('#flipbook').turn(curr >= TOTAL_PAGES ? 'first' : 'next');
-          }, AUTOPLAY_MS);
-          $(this).addClass('active');
-          document.getElementById('autoplay-icon').innerHTML =
-            '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
-        }
-      });
-    }
-
-    // ============================================
-    //  TAM EKRAN
-    // ============================================
-    function initFullscreen() {
-      var btn  = document.getElementById('fullscreen-btn');
-      var icon = document.getElementById('fullscreen-icon');
-      var ENTER = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>';
-      var EXIT  = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 0 2-2h3M3 16h3a2 2 0 0 0 2 2v3"/>';
-
-      btn.addEventListener('click', function() {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(function(e) {
-            console.warn('Tam ekran açılamadı:', e);
-          });
-        } else {
-          document.exitFullscreen();
-        }
-      });
-
-      document.addEventListener('fullscreenchange', function() {
-        icon.innerHTML = document.fullscreenElement ? EXIT : ENTER;
-      });
-    }
-  </script>
 </body>
 </html>
