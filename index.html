@@ -223,23 +223,41 @@
     function calculateFlipbookDimensions() {
       var panelOpen = $('#side-panel').hasClass('open');
       var panelW    = panelOpen ? ($('#side-panel').outerWidth() || 240) : 0;
-      var screenW   = $(window).width() - panelW;
-      var screenH   = $(window).height() - TOOLBAR_TOP - TOOLBAR_BOTTOM;
+      
+      // Use documentElement.clientWidth/Height for more robust mobile measurements
+      var screenW   = document.documentElement.clientWidth - panelW;
+      var screenH   = document.documentElement.clientHeight - 
+                      ($('#top-toolbar').outerHeight() || TOOLBAR_TOP) - 
+                      ($('#bottom-toolbar').outerHeight() || TOOLBAR_BOTTOM);
+      
       var isSingle  = screenW < 600;
 
       // Sayfa oranı: 1080 / 1440 = 0.75 (en/boy)
       var pageRatio = PAGE_W / PAGE_H;
       var flipRatio = isSingle ? pageRatio : pageRatio * 2;
 
-      var maxW = screenW * 0.96;
-      var maxH = screenH * 0.96;
+      var maxW = screenW * 0.98; // Use a slightly larger area on mobile
+      var maxH = screenH * 0.98;
+      
       var w = maxW;
       var h = w / flipRatio;
 
-      if (h > maxH) { h = maxH; w = h * flipRatio; }
-      if (!isSingle && w > 1400) { w = 1400; h = w / flipRatio; }
+      if (h > maxH) { 
+        h = maxH; 
+        w = h * flipRatio; 
+      }
+      
+      // Prevent double page mode from being too wide
+      if (!isSingle && w > 1400) { 
+        w = 1400; 
+        h = w / flipRatio; 
+      }
 
-      return { width: Math.floor(w), height: Math.floor(h), display: isSingle ? 'single' : 'double' };
+      return { 
+        width: Math.floor(w), 
+        height: Math.floor(h), 
+        display: isSingle ? 'single' : 'double' 
+      };
     }
 
     // ============================================
