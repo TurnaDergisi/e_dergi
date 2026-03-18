@@ -107,6 +107,14 @@ def create_issue(pdf_path, issue_dir_name, title, template_dir="_template"):
     total_pages = len(doc)
     print(f"PDF İşleniyor: {total_pages} sayfa")
 
+    # İlk sayfanın 2x render boyutunu hesapla (config.js için)
+    first_page = doc[0]
+    mat_measure = fitz.Matrix(2.0, 2.0)
+    pix_measure = first_page.get_pixmap(matrix=mat_measure, alpha=False)
+    page_width = pix_measure.width
+    page_height = pix_measure.height
+    print(f"Sayfa boyutu: {page_width}x{page_height}")
+
     mobile_dir = os.path.join(target_path, "files", "mobile")
     thumb_dir = os.path.join(target_path, "files", "thumb")
     files_dir = os.path.join(target_path, "files")
@@ -140,6 +148,8 @@ def create_issue(pdf_path, issue_dir_name, title, template_dir="_template"):
 
         content = re.sub(r'totalPageCount\s*:\s*\d+', f'totalPageCount : {total_pages}', content)
         content = re.sub(r'bookConfig\.totalPageCount\s*=\s*\d+;', f'bookConfig.totalPageCount={total_pages};', content)
+        content = re.sub(r'bookConfig\.largePageWidth\s*=\s*\d+;', f'bookConfig.largePageWidth={page_width};', content)
+        content = re.sub(r'bookConfig\.largePageHeight\s*=\s*\d+;', f'bookConfig.largePageHeight={page_height};', content)
         content = re.sub(r'bookTitle\s*:\s*".*?"', f'bookTitle:"{title}"', content)
         content = re.sub(r'bookConfig\.bookTitle\s*=\s*".*?";', f'bookConfig.bookTitle="{title}";', content)
 
