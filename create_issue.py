@@ -109,17 +109,25 @@ def create_issue(pdf_path, issue_dir_name, title, template_dir="_template"):
 
     mobile_dir = os.path.join(target_path, "files", "mobile")
     thumb_dir = os.path.join(target_path, "files", "thumb")
+    files_dir = os.path.join(target_path, "files")
 
     for i in range(total_pages):
         page = doc[i]
         mat = fitz.Matrix(2.0, 2.0)
         pix = page.get_pixmap(matrix=mat, alpha=False)
         pix.save(os.path.join(mobile_dir, f"{i+1}.jpg"), jpg_quality=85)
-        
+
         mat_t = fitz.Matrix(0.3, 0.3)
         pix_t = page.get_pixmap(matrix=mat_t, alpha=False)
         pix_t.save(os.path.join(thumb_dir, f"{i+1}.jpg"), jpg_quality=70)
-        
+
+        # İlk sayfadan shot.png oluştur (sosyal medya önizlemesi için)
+        if i == 0:
+            mat_s = fitz.Matrix(0.6, 0.6)
+            pix_s = page.get_pixmap(matrix=mat_s, alpha=False)
+            pix_s.save(os.path.join(files_dir, "shot.png"), jpg_quality=85)
+            print("shot.png (sosyal medya önizlemesi) oluşturuldu")
+
         if (i+1) % 10 == 0 or (i+1) == total_pages:
             print(f"Görsel İlerleme: {i+1}/{total_pages}")
 
