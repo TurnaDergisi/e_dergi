@@ -4,7 +4,24 @@ import sys
 import shutil
 import re
 import time
+import html
 import argparse
+
+SAFE_NAME_RE = re.compile(r'^[A-Za-z0-9_\-]+$')
+
+def validate_dir_name(name):
+    """Klasör adını doğrula: sadece harf, rakam, alt çizgi, tire."""
+    if not name or not SAFE_NAME_RE.match(name):
+        print(f"HATA: Geçersiz klasör adı: '{name}'. Sadece harf, rakam, _ ve - kullanılabilir.")
+        sys.exit(1)
+    if '..' in name:
+        print("HATA: Klasör adında '..' kullanılamaz.")
+        sys.exit(1)
+
+def safe_title(title):
+    """Başlığı HTML ve JS için güvenli hale getir."""
+    title = title.replace('"', '').replace("'", '').replace('<', '').replace('>', '').replace('\\', '')
+    return title
 
 def update_shelf(base_dir, issue_dir, title, pdf_name):
     index_path = os.path.join(base_dir, "index.html")
@@ -67,9 +84,18 @@ def update_shelf(base_dir, issue_dir, title, pdf_name):
         f.write(content)
 
 def create_issue(pdf_path, issue_dir_name, title, template_dir="_template"):
+    validate_dir_name(issue_dir_name)
+    validate_dir_name(template_dir)
+    title = safe_title(title)
+
     base_dir = os.path.dirname(os.path.abspath(__file__))
     template_path = os.path.join(base_dir, template_dir)
     target_path = os.path.join(base_dir, issue_dir_name)
+
+    # Path traversal koruması
+    if not os.path.realpath(target_path).startswith(os.path.realpath(base_dir)):
+        print("HATA: Hedef klasör proje dizini dışında olamaz.")
+        return
 
     try:
         import fitz

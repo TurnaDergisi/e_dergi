@@ -5,10 +5,22 @@ import shutil
 import re
 import argparse
 
+SAFE_NAME_RE = re.compile(r'^[A-Za-z0-9_\-]+$')
+
 def delete_issue(base_dir, issue_dir_name):
     """Sayı klasörünü ve ana sayfadaki referanslarını sil"""
 
+    # Girdi doğrulama
+    if not issue_dir_name or not SAFE_NAME_RE.match(issue_dir_name) or '..' in issue_dir_name:
+        print(f"HATA: Geçersiz klasör adı: '{issue_dir_name}'. Sadece harf, rakam, _ ve - kullanılabilir.")
+        return False
+
     issue_path = os.path.join(base_dir, issue_dir_name)
+
+    # Path traversal koruması
+    if not os.path.realpath(issue_path).startswith(os.path.realpath(base_dir)):
+        print("HATA: Hedef klasör proje dizini dışında olamaz.")
+        return False
     index_path = os.path.join(base_dir, "index.html")
 
     # Klasör varlığını kontrol et
@@ -56,8 +68,9 @@ def delete_issue(base_dir, issue_dir_name):
             )
 
             # Grid'den sil (sayının kartını sil)
+            safe_name = re.escape(issue_dir_name)
             content = re.sub(
-                rf'<!-- {issue_dir_name}.*?-->\s*<a href="{issue_dir_name}/mobile/index\.html".*?</a>',
+                rf'<!-- {safe_name}.*?-->\s*<a href="{safe_name}/mobile/index\.html".*?</a>',
                 '',
                 content,
                 flags=re.DOTALL
@@ -66,7 +79,7 @@ def delete_issue(base_dir, issue_dir_name):
             # Alternatif olarak direct link sil
             if content == old_content:
                 content = re.sub(
-                    rf'<a href="{issue_dir_name}/mobile/index\.html"[^>]*>.*?</a>',
+                    rf'<a href="{safe_name}/mobile/index\.html"[^>]*>.*?</a>',
                     '',
                     content,
                     flags=re.DOTALL

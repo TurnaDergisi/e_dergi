@@ -1,6 +1,15 @@
 node_modules/
 __pycache__/
+*.pyc
 *.log
+*.env
+.env*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
 dump.html
 check_errors.js
 logs.json
