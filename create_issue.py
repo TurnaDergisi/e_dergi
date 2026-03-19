@@ -96,7 +96,6 @@ def create_issue(pdf_path, issue_dir_name, title, template_dir="_template"):
         os.path.join(target_path, "files", "mobile"),
         os.path.join(target_path, "files", "thumb"),
         os.path.join(target_path, "files", "page"),
-        os.path.join(target_path, "files", "search")
     ]
     for d in dirs_to_clean:
         if os.path.exists(d):
